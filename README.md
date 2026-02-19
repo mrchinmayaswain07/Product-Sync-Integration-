@@ -239,4 +239,74 @@ Defines centralized error handling:
 ---
 
 
+# 4. Salesforce System API (System Layer)
+
+The **Salesforce System API** is responsible for integrating with Salesforce and upserting product records into the `External_Product__c` object.
+
+This API handles data transformation, retry logic, error handling, and dead-letter queue processing to ensure reliable data synchronization.
+
+The API is structured using four XML files:
+
+* `interface.xml`
+* `impl.xml`
+* `global.xml`
+* `error-handler.xml`
+
+## i) interface.xml
+<img width="234" height="326" alt="image" src="https://github.com/user-attachments/assets/612eb4fe-a48a-415a-ac78-9cada0de1d22" />
+
+The interface layer contains:
+
+* **HTTP Listener** – Exposes endpoint for upsert requests
+* **Flow Reference** – Calls implementation flow
+* Error handling reference
+
+This layer receives requests from the Process API and forwards them to the implementation flow.
+
+## ii) impl.xml
+<img width="652" height="295" alt="image" src="https://github.com/user-attachments/assets/d3b656a6-f2e9-44ec-8f81-728a41a05698" />
+
+The implementation layer performs Salesforce integration:
+
+* **Logger** – Logs incoming request
+* **Transform Message (DataWeave)** – Converts payload into Salesforce format
+* **Try Scope** – Wraps Salesforce operation
+* **Until Successful** – Implements retry mechanism
+* **Salesforce Upsert** – Upserts record using External ID
+* **Logger** – Logs successful operation
+* References global error handler
+
+This ensures reliable and fault-tolerant record synchronization.
+
+## iii) global.xml
+<img width="285" height="245" alt="image" src="https://github.com/user-attachments/assets/6c2f3ed9-5a3a-4f87-b92d-70b4b2407e03" />
+
+Contains global configurations:
+
+* Configuration Properties
+* HTTP Listener Configuration
+* Salesforce Configuration
+* VM Configuration (for DLQ)
+* Secure Properties Configuration
+
+Sensitive credentials are managed using secure properties.
+
+## iv) error-handler.xml
+<img width="253" height="380" alt="image" src="https://github.com/user-attachments/assets/29b9d1af-67dc-4338-9b2b-ffbe149ba1dd" />
+
+Defines centralized error handling:
+
+* **On Error Propagate (MULE:RETRY_EXHAUSTED)**
+
+  * Logs error
+  * Publishes failed message to Dead Letter Queue (DLQ)
+
+* **On Error Propagate (ANY)**
+
+  * Logs error
+  * Publishes message to DLQ
+
+---
+----
+
 
