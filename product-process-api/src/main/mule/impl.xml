@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+
+  
+
+    <flow name="process-product-impl" doc:id="65141cc0-439d-47ea-848a-5d59af3e126d">
+
+       
+        <http:request
+            config-ref="FakeStore_System_Config"
+            method="GET"
+            path="/system/products"/>
+
+        <logger level="INFO" doc:name="Logger" doc:id="073e4b76-9334-406c-8118-09126fa793a1" message="[CorrelationId: #[correlationId]] product fetched from fakestore"/>
+		<set-variable variableName="totalFetched"
+                      value="#[sizeOf(payload)]"/>
+
+        <set-variable variableName="sentCount"
+                      value="0"/>
+
+        <foreach collection="#[payload]">
+
+
+            <choice>
+                <when expression="#[payload.price > 100]">
+                    <set-variable variableName="productType"
+                                  value="Premium"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="productType"
+                                  value="Standard"/>
+                </otherwise>
+            </choice>
+
+            <!-- Add business fields -->
+            <ee:transform>
+                <ee:message>
+                    <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+payload ++ { productType: vars.productType }                 ]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+
+            <!-- Publish to VM -->
+            <vm:publish config-ref="VM_Config"
+                        queueName="product.sync.queue"
+                        sendCorrelationId="AUTO"/>
+
+            <set-variable variableName="sentCount"
+                          value="#[vars.sentCount + 1]"/>
+
+        </foreach>
+
+        <!-- Final Response -->
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[
+%dw 2.0
+output application/json
+---
+{
+  totalFetched: vars.totalFetched,
+  sentToQueue: vars.sentCount
+}
+                ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<error-handler ref="global-error-handler" />
+
+    
+</flow>
+
+
+
+   
+
+    <flow name="process-vm-consumer-flow">
+
+        <vm:listener config-ref="VM_Config"
+                     queueName="product.sync.queue"/>
+
+        <logger level="INFO"
+                message="[CorrelationId: #[correlationId]] Consuming from VM Queue ID: #[payload.id]"/>
+
+       
+        <http:request
+            method="POST"
+            config-ref="Salesforce_System_Config"
+            path="/system/salesforce/upsert"/>
+
+    </flow>
+
+</mule>

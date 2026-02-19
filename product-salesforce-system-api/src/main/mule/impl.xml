@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+      xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+
+    <flow name="salesforce-upsert-impl">
+
+        <logger level="INFO"
+                message="[CorrelationId: #[correlationId]]  Processing Product"/>
+
+       
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[
+%dw 2.0
+import substring from dw::core::Strings
+
+output application/java
+---
+[
+  {
+    External_Id__c: payload.id as String,
+    Name: substring(payload.title,0,80),
+    Category__c:
+            if (payload.category == "electronics")
+                "Electronics"
+            else
+                "Other",
+    Price__c: payload.price default 0,
+    Description__c: payload.description default "",
+    Image_URL__c: payload.image default "",
+    Is_Active__c: (payload.price default 0) >= 20,
+    Product_Type__c: payload.productType
+  }
+]
+                ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <try>
+
+            <until-successful maxRetries="3"
+                              millisBetweenRetries="3000">
+
+                <salesforce:upsert config-ref="Salesforce_Config"
+                                   objectType="External_Product__c"
+                                   externalIdFieldName="External_Id__c"/>
+
+            </until-successful>
+
+            <logger level="INFO" doc:name="Logger" doc:id="20075bdf-76f5-47c6-b3b1-0ce4f5f1a68c" message="[CorrelationId: #[correlationId]] Product sucessfully loaded"/>
+			<error-handler ref="global-error-handler" />
+
+        
+</try>
+		<error-handler ref="global-error-handler" />
+
+    
+</flow>
+
+
+</mule>

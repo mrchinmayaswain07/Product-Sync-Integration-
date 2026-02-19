@@ -1,0 +1,9 @@
+http:
+  host: "localhost"
+  port: "8083"
+  
+
+fakestore:
+  protocol: "HTTPS"
+  host: "fakestoreapi.com"
+  port: "443"

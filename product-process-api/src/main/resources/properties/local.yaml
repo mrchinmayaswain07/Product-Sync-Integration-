@@ -1,0 +1,15 @@
+env: local
+
+http:
+  host: "localhost"
+  port: "8082"
+
+fakestore:
+  host: "localhost"
+  port: "8083"
+  protocol: "HTTP"
+
+salesforce:
+  host: "localhost"
+  port: "8084"
+  protocol: "HTTP"

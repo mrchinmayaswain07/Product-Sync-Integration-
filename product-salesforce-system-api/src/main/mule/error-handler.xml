@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+      xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+        http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+
+    <error-handler name="global-error-handler">
+
+       
+        <on-error-propagate type="MULE:RETRY_EXHAUSTED"
+                            logException="true">
+
+            <logger level="ERROR"
+                    message="[CorrelationId: #[correlationId]] Salesforce retry exhausted: #[error.description]"/>
+
+            <vm:publish config-ref="VM_Config"
+                        queueName="product.sync.dlq" sendCorrelationId="AUTO"/>
+
+        </on-error-propagate>
+
+
+        
+        <on-error-propagate type="ANY"
+                            logException="true">
+
+            <logger level="ERROR"
+                    message="[CorrelationId: #[correlationId]] Unhandled application error: #[error.description]"/>
+
+            <vm:publish config-ref="VM_Config"
+                        queueName="product.sync.dlq" sendCorrelationId="AUTO"/>
+
+        </on-error-propagate>
+
+    </error-handler>
+
+</mule>

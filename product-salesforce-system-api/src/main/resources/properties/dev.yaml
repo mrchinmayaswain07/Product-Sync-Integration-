@@ -1,0 +1,13 @@
+env: dev
+
+http:
+  host: "0.0.0.0"
+  port: "8084"
+
+
+salesforce:
+  username: "mrchinmayaswain07473@agentforce.com"
+  password: "![MSbEm2jMAarTuKewltBFmQ==]"
+  securityToken: "![nAgQxO7NuGSNskQKOoqcRqjZY22C2yEqBCChNM7LD+g=]"
+  consumerKey: "![GnVdcvWQ7sqLe3LxLV0RHeO4x4qky+zEPW2qnHV8MUD3gev4qtrdnhMEfBvDJoCUcvEgWaXA5iTYZ6zKhj+h4djts4oOVZ0fDmu3dvUUvSHBBv5J5xnQVA7U3QC+Uu3D]"
+  consumerSecret: "![7oCxD9em/6P1NNyphGsqP+9Jvz23SHjexix5TRFtu/WXnv07cx8rQBqbp27o0THCslGOI6/8WvBSn55c2k92szrUt/mObZ/3I/zqOAGnIbQ=]"
